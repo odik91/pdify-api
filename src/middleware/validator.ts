@@ -6,7 +6,7 @@ export const validate = (
 ): RequestHandler | any => {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({ error: "Empty body is not accepted!" });
+      return res.status(422).json({ error: "Empty body is not accepted!" });
     }
 
     try {
