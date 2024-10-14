@@ -1,9 +1,13 @@
 import User from "#/models/user";
 import { generateToken } from "#/utils/helper";
 import { CreateUserSchema } from "#/utils/validationSchema";
-import { RequestHandler, Response } from "express";
+import { RequestHandler, response, Response } from "express";
 import { CreateUser, VerifyEmailRequest } from "./../@types/user";
-import { sendVerificationMail } from "#/utils/mail";
+import {
+  sendForgetPasswordLink,
+  sendPassResetSuccessEmail,
+  sendVerificationMail,
+} from "#/utils/mail";
 import EmailVerificationToken from "#/models/emailVerificationToken";
 import { isValidObjectId } from "mongoose";
 import PasswordResetToken from "#/models/passwordResetToken";
@@ -75,9 +79,9 @@ export const verifyEmail: RequestHandler = async (
   return res.status(200).json({ message: "Your email is verified" });
 };
 
-export const sendReVerificationToken = async (
-  req: { body: { userId: string } },
-  res: Response
+export const sendReVerificationToken: RequestHandler = async (
+  req,
+  res
 ): Promise<any> => {
   const { userId } = req.body;
   const user = await User.findById(userId);
@@ -108,14 +112,16 @@ export const sendReVerificationToken = async (
   res.json({ message: "Please check your mail!" });
 };
 
-export const generatePasswordLink = async (
-  req: { body: { email: string } },
-  res: Response
+export const generatePasswordLink: RequestHandler = async (
+  req,
+  res
 ): Promise<any> => {
   const { email } = req.body;
 
   const user = await User.findOne({ email });
   if (!user) return res.status(404).json({ message: "Account not found" });
+
+  await PasswordResetToken.findOneAndDelete({ owner: user._id });
 
   const token = crypto.randomBytes(36).toString("hex");
 
@@ -127,5 +133,37 @@ export const generatePasswordLink = async (
 
   const resetLink = `${PASSWORD_RESET_LINK}?token=${token}&userId=${user._id}`;
 
-  res.status(200).json({ resetLink });
+  sendForgetPasswordLink({ email: user.email, link: resetLink });
+
+  res.status(200).json({ message: "Check your registered mail." });
+};
+
+export const grantValid: RequestHandler = async (req, res): Promise<any> => {
+  res.status(200).json({ valid: true });
+};
+
+export const updatePassword: RequestHandler = async (
+  req,
+  res
+): Promise<any> => {
+  const { password, userId } = req.body;
+
+  const user = await User.findById(userId);
+  if (!user) return res.status(403).json({ message: "Unauthorized access!" });
+
+  const matched = await user.comparePassword(password);
+  if (matched)
+    return res
+      .status(422)
+      .json({ message: "The new password must be different!" });
+
+  user.password = password;
+  await user.save();
+
+  await PasswordResetToken.findOneAndDelete({ owner: user._id });
+
+  // send success message
+  sendPassResetSuccessEmail(user.name, user.email);
+
+  res.status(200).json({ message: "Password reset successfully." });
 };

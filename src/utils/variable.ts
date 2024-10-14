@@ -6,4 +6,5 @@ export const {
   MAIL_HOST,
   VERIFICATION_EMAIL,
   PASSWORD_RESET_LINK,
+  SING_IN_URL
 } = env;
