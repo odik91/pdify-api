@@ -1,5 +1,4 @@
 import { generateTemplate } from "#/mail/template";
-import EmailVerificationToken from "#/models/emailVerificationToken";
 import { MAIL_HOST, MAILTRAP_PASSWORD, MAILTRAP_USER, VERIFICATION_EMAIL } from "#/utils/variable";
 import nodemailer from "nodemailer";
 import path from "path";
@@ -22,12 +21,7 @@ interface Profile {
 }
 
 export const sendVerificationMail = async (token: string, profile: Profile) => {
-  const transport = generateMailTransporter();
-
-  await EmailVerificationToken.create({
-    owner: profile.userId,
-    token,
-  });
+  const transport = generateMailTransporter();  
 
   const welcomeMessage = `Hi ${profile.name}, welcome to Posify! There are so much thing that we do for verified users. Use the given OTP to verify your email.`;
 

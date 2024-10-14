@@ -5,6 +5,7 @@ import { RequestHandler, Response } from "express";
 import { CreateUser, VerifyEmailRequest } from "./../@types/user";
 import { sendVerificationMail } from "#/utils/mail";
 import EmailVerificationToken from "#/models/emailVerificationToken";
+import { isValidObjectId } from "mongoose";
 
 // export const create: RequestHandler = async (req: CreateUser, res: { status: (arg0: number) => { (): any; new(): any; json: { (arg0: { user?: any; error?: unknown; }): any; new(): any; }; }; }): Promise<any | unknown> => {
 //   const { email, password, name } = req.body;
@@ -31,6 +32,12 @@ export const create: RequestHandler = async (
     // Looking to send emails in production? Check out our Email API/SMTP product!
     // generate token
     const token = generateToken();
+
+    await EmailVerificationToken.create({
+      owner: user._id.toString(),
+      token,
+    });
+
     sendVerificationMail(token, {
       email,
       name,
@@ -63,4 +70,36 @@ export const verifyEmail: RequestHandler = async (
   await EmailVerificationToken.findByIdAndDelete(verificationToken._id);
 
   return res.status(200).json({ message: "Your email is verified" });
+};
+
+export const sendReVerificationToken = async (
+  req: { body: { userId: string } },
+  res: Response
+): Promise<any> => {
+  const { userId } = req.body;
+  const user = await User.findById(userId);
+
+  if (!isValidObjectId(userId))
+    return res.status(403).json({ message: "Invalid request!" });
+
+  if (!user) return res.status(403).json({ message: "Invalid request!" });
+
+  if (user.verified) return res.status(403).json({ message: "Email already verified!" });
+
+  await EmailVerificationToken.findOneAndDelete({ owner: userId });
+
+  const token = generateToken();
+
+  await EmailVerificationToken.create({
+    owner: userId,
+    token,
+  });
+
+  sendVerificationMail(token, {
+    email: user?.email,
+    name: user?.name,
+    userId: user?._id.toString(),
+  });
+
+  res.json({ message: "Please check your mail!" });
 };
