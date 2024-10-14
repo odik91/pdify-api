@@ -6,6 +6,9 @@ import { CreateUser, VerifyEmailRequest } from "./../@types/user";
 import { sendVerificationMail } from "#/utils/mail";
 import EmailVerificationToken from "#/models/emailVerificationToken";
 import { isValidObjectId } from "mongoose";
+import PasswordResetToken from "#/models/passwordResetToken";
+import crypto from "crypto";
+import { PASSWORD_RESET_LINK } from "#/utils/variable";
 
 // export const create: RequestHandler = async (req: CreateUser, res: { status: (arg0: number) => { (): any; new(): any; json: { (arg0: { user?: any; error?: unknown; }): any; new(): any; }; }; }): Promise<any | unknown> => {
 //   const { email, password, name } = req.body;
@@ -84,7 +87,8 @@ export const sendReVerificationToken = async (
 
   if (!user) return res.status(403).json({ message: "Invalid request!" });
 
-  if (user.verified) return res.status(403).json({ message: "Email already verified!" });
+  if (user.verified)
+    return res.status(403).json({ message: "Email already verified!" });
 
   await EmailVerificationToken.findOneAndDelete({ owner: userId });
 
@@ -102,4 +106,26 @@ export const sendReVerificationToken = async (
   });
 
   res.json({ message: "Please check your mail!" });
+};
+
+export const generatePasswordLink = async (
+  req: { body: { email: string } },
+  res: Response
+): Promise<any> => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) return res.status(404).json({ message: "Account not found" });
+
+  const token = crypto.randomBytes(36).toString("hex");
+
+  // generate the link
+  await PasswordResetToken.create({
+    owner: user._id,
+    token,
+  });
+
+  const resetLink = `${PASSWORD_RESET_LINK}?token=${token}&userId=${user._id}`;
+
+  res.status(200).json({ resetLink });
 };

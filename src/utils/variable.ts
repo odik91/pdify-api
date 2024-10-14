@@ -5,4 +5,5 @@ export const {
   MAILTRAP_PASSWORD,
   MAIL_HOST,
   VERIFICATION_EMAIL,
+  PASSWORD_RESET_LINK,
 } = env;
