@@ -7,15 +7,18 @@ import {
   updatePassword,
   verifyEmail,
 } from "#/controller/user";
-import { isValidPassResetToken } from "#/middleware/auth";
+import { isValidPassResetToken, mustAuth } from "#/middleware/auth";
 import { validate } from "#/middleware/validator";
+import User from "#/models/user";
 import {
   CreateUserSchema,
   SignInValidationSchema,
   TokenAndIDValidation,
   UpdatePasswordSchema,
 } from "#/utils/validationSchema";
+import { JWT_SECRET } from "#/utils/variable";
 import { Router } from "express";
+import { JwtPayload, verify } from "jsonwebtoken";
 
 const router = Router();
 
@@ -35,10 +38,11 @@ router.post(
   isValidPassResetToken,
   updatePassword
 );
-router.post(
-  "/sign-in",
-  validate(SignInValidationSchema),
-  signIn
-);
+router.post("/sign-in", validate(SignInValidationSchema), signIn);
+router.get("/is-auth", mustAuth, async (req, res): Promise<any> => {
+  return res.json({
+    profile: req.user,
+  });
+});
 
 export default router;
