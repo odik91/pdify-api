@@ -9,16 +9,17 @@ import {
 } from "#/controller/user";
 import { isValidPassResetToken, mustAuth } from "#/middleware/auth";
 import { validate } from "#/middleware/validator";
-import User from "#/models/user";
 import {
   CreateUserSchema,
   SignInValidationSchema,
   TokenAndIDValidation,
   UpdatePasswordSchema,
 } from "#/utils/validationSchema";
-import { JWT_SECRET } from "#/utils/variable";
 import { Router } from "express";
-import { JwtPayload, verify } from "jsonwebtoken";
+import formidable from "formidable";
+import path from "path";
+import fs from "fs";
+import { fileParser, RequestWithFiles } from "#/middleware/fileParser";
 
 const router = Router();
 
@@ -44,5 +45,13 @@ router.get("/is-auth", mustAuth, async (req, res): Promise<any> => {
     profile: req.user,
   });
 });
+router.post(
+  "/update-profile",
+  fileParser,
+  (req: RequestWithFiles, res: any) => {
+    console.log(req.files);
+    return res.json({ message: "ok" });
+  }
+);
 
 export default router;
