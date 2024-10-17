@@ -39,7 +39,7 @@ export const createAudio: RequestHandler = async (
     });
 
     const uploadPoster = poster ? poster[0] : null;
-    if (uploadPoster) {
+    if (uploadPoster && uploadPoster.filepath) {
       const posterResponse = await cloudinary.uploader.upload(
         uploadPoster.filepath,
         {
@@ -69,5 +69,62 @@ export const createAudio: RequestHandler = async (
   } catch (error) {
     console.error("Error upload audio:", error);
     return res.status(500).json({ error: "Failed to upload audio" });
+  }
+};
+
+export const updateAudio: RequestHandler = async (
+  req: CreateAudioCategory,
+  res
+): Promise<any> => {
+  const { title, about, category } = req.body;
+  const poster = req.files?.poster as formidable.File[];
+  const ownerId = req.user.id;
+  const { audioId } = req.params;
+
+  try {
+    const audio = await Audio.findOneAndUpdate(
+      { owner: ownerId, _id: audioId },
+      { title, about, category },
+      { new: true }
+    );
+
+    if (!audio) return res.status(404).json({ message: "Record not found" });
+
+    const uploadPoster = poster ? poster[0] : null;
+    if (uploadPoster && uploadPoster.filepath) {
+      if (audio.poster?.publicId) {
+        // delete old poster
+        await cloudinary.uploader.destroy(audio.poster.publicId);
+      }
+
+      const posterResponse = await cloudinary.uploader.upload(
+        uploadPoster.filepath,
+        {
+          width: 300,
+          height: 300,
+          crop: "thumb",
+          gravity: "face",
+        }
+      );
+
+      audio.poster = {
+        url: posterResponse.secure_url,
+        publicId: posterResponse.public_id,
+      };
+
+      await audio.save();
+    }
+
+    return res.status(200).json({
+      audio: {
+        title,
+        about,
+        file: audio.file.url,
+        poster: audio.poster?.url,
+      },
+    });
+  } catch (error) {
+    console.error("Error update audio:", error);
+    return res.status(500).json({ error: "Failed to update audio" });
   }
 };
