@@ -52,6 +52,7 @@ export const mustAuth: RequestHandler = async (
     followers: user.followers.length,
     following: user.following.length,
   };
+  req.token = token;
 
   next();
 };

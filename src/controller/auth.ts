@@ -1,8 +1,8 @@
-import User from "#/models/user";
-import { generateToken } from "#/utils/helper";
+import User, { UserDocument } from "#/models/user";
+import { formatProfile, generateToken } from "#/utils/helper";
 import { CreateUserSchema } from "#/utils/validationSchema";
 import { RequestHandler, Response } from "express";
-import { CreateUser, VerifyEmailRequest } from "./../@types/user";
+import { CreateUser, VerifyEmailRequest } from "../@types/user";
 import {
   sendForgetPasswordLink,
   sendPassResetSuccessEmail,
@@ -259,9 +259,34 @@ export const updateProfile: RequestHandler = async (
     await user.save();
 
     // Respond with the updated avatar
-    return res.status(200).json({ avatar: user.avatar });
+    return res.status(200).json({ profile: formatProfile(user) });
   } catch (error) {
     console.error("Error updating profile:", error);
     return res.status(500).json({ error: "Failed to update profile" });
   }
+};
+
+export const sendProfile: RequestHandler = async (req, res): Promise<any> => {
+  res.status(200).json({ profile: req.user });
+};
+
+export const logOut: RequestHandler = async (req, res): Promise<any> => {
+  const { formAll } = req.query;
+
+  const token = req.token;
+  const user = await User.findById(req.user.id);
+  if (!user)
+    return res
+      .status(403)
+      .json({ message: "Something went wrong, user not found" });
+
+  // logout from all
+  if (formAll === "yes") {
+    user.tokens = [];
+  } else {
+    user.tokens = user.tokens.filter((t: string) => t !== token);
+  }
+  await user.save();
+
+  res.status(200).json({ message: "Logging out..." });
 };

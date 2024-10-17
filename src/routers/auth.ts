@@ -2,13 +2,16 @@ import {
   create,
   generatePasswordLink,
   grantValid,
+  logOut,
+  sendProfile,
   sendReVerificationToken,
   signIn,
   updatePassword,
   updateProfile,
   verifyEmail,
-} from "#/controller/user";
+} from "#/controller/auth";
 import { isValidPassResetToken, mustAuth } from "#/middleware/auth";
+import { fileParser } from "#/middleware/fileParser";
 import { validate } from "#/middleware/validator";
 import {
   CreateUserSchema,
@@ -17,10 +20,6 @@ import {
   UpdatePasswordSchema,
 } from "#/utils/validationSchema";
 import { Router } from "express";
-import formidable from "formidable";
-import path from "path";
-import fs from "fs";
-import { fileParser, RequestWithFiles } from "#/middleware/fileParser";
 
 const router = Router();
 
@@ -41,16 +40,8 @@ router.post(
   updatePassword
 );
 router.post("/sign-in", validate(SignInValidationSchema), signIn);
-router.get("/is-auth", mustAuth, async (req, res): Promise<any> => {
-  return res.json({
-    profile: req.user,
-  });
-});
-router.post(
-  "/update-profile",
-  mustAuth,
-  fileParser,
-  updateProfile
-);
+router.get("/is-auth", mustAuth, sendProfile);
+router.post("/update-profile", mustAuth, fileParser, updateProfile);
+router.post("/log-out", mustAuth, logOut)
 
 export default router;
