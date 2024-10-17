@@ -5,6 +5,7 @@ import {
   sendReVerificationToken,
   signIn,
   updatePassword,
+  updateProfile,
   verifyEmail,
 } from "#/controller/user";
 import { isValidPassResetToken, mustAuth } from "#/middleware/auth";
@@ -47,11 +48,9 @@ router.get("/is-auth", mustAuth, async (req, res): Promise<any> => {
 });
 router.post(
   "/update-profile",
+  mustAuth,
   fileParser,
-  (req: RequestWithFiles, res: any) => {
-    console.log(req.files);
-    return res.json({ message: "ok" });
-  }
+  updateProfile
 );
 
 export default router;

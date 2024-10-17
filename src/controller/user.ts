@@ -14,6 +14,9 @@ import PasswordResetToken from "#/models/passwordResetToken";
 import crypto from "crypto";
 import { JWT_SECRET, PASSWORD_RESET_LINK } from "#/utils/variable";
 import jwt from "jsonwebtoken";
+import { RequestWithFiles } from "#/middleware/fileParser";
+import cloudinary from "#/cloud";
+import formidable from "formidable";
 
 // export const create: RequestHandler = async (req: CreateUser, res: { status: (arg0: number) => { (): any; new(): any; json: { (arg0: { user?: any; error?: unknown; }): any; new(): any; }; }; }): Promise<any | unknown> => {
 //   const { email, password, name } = req.body;
@@ -200,4 +203,65 @@ export const signIn: RequestHandler = async (
     },
     token,
   });
+};
+
+export const updateProfile: RequestHandler = async (
+  req: RequestWithFiles,
+  res
+): Promise<any> => {
+  const { name } = req.body;
+  const avatarArray = req.files?.avatar as formidable.File[];
+
+  const avatar = avatarArray ? avatarArray[0] : null;
+
+  try {
+    console.log("req.files:", req.files);
+    console.log("avatar:", avatar);
+    // Find the user
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found!" });
+    }
+
+    // Validate name
+    if (typeof name !== "string" || name.trim().length < 3) {
+      return res.status(422).json({ error: "Invalid name!" });
+    }
+
+    user.name = name.trim();
+
+    // Handle avatar upload if provided
+    if (avatar && avatar.filepath) {
+      // If the user already has an avatar, remove the existing one from Cloudinary
+      if (user.avatar?.publicId) {
+        await cloudinary.uploader.destroy(user.avatar.publicId);
+      }
+
+      // Upload new avatar to Cloudinary
+      const uploadResult = await cloudinary.uploader.upload(avatar.filepath, {
+        width: 300,
+        height: 300,
+        crop: "thumb",
+        gravity: "face",
+      });
+
+      // Save new avatar URL and publicId to user profile
+      user.avatar = {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+      };
+    } else {
+      console.error("Avatar file is missing or invalid");
+      return res.status(422).json({ error: "Avatar file is missing!" });
+    }
+
+    // Save the updated user profile
+    await user.save();
+
+    // Respond with the updated avatar
+    return res.status(200).json({ avatar: user.avatar });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    return res.status(500).json({ error: "Failed to update profile" });
+  }
 };
