@@ -69,3 +69,14 @@ export const AudioValidationSchema = yup.object().shape({
     .oneOf(categories, "Invalid category!")
     .required("Please select a category!"),
 });
+
+export const NewPlaylistValidationSchema = yup.object().shape({
+  title: yup.string().required("Please provide title!"),
+  resId: yup.string().transform(function (value) {
+    return this.isType(value) && isValidObjectId(value) ? value : "";
+  }),
+  visibility: yup
+    .string()
+    .oneOf(["public", "private"], "Invalid visibility!")
+    .required("Please select a visibility!"),
+});
