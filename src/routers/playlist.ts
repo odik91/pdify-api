@@ -1,11 +1,24 @@
-import { createPlaylist } from "#/controller/playlist";
+import { createPlaylist, removePlaylist, updatePlaylist } from "#/controller/playlist";
 import { isVerified, mustAuth } from "#/middleware/auth";
 import { validate } from "#/middleware/validator";
-import { NewPlaylistValidationSchema } from "#/utils/validationSchema";
+import { NewPlaylistValidationSchema, OldPlaylistValidationSchema } from "#/utils/validationSchema";
 import { Router } from "express";
 
-const router = Router()
+const router = Router();
 
-router.post('/create', mustAuth, isVerified, validate(NewPlaylistValidationSchema), createPlaylist)
+router.post(
+  "/create",
+  mustAuth,
+  isVerified,
+  validate(NewPlaylistValidationSchema),
+  createPlaylist
+);
+router.patch(
+  "/",
+  mustAuth,
+  validate(OldPlaylistValidationSchema),
+  updatePlaylist
+);
+router.delete("/", mustAuth, removePlaylist)
 
-export default router
+export default router;

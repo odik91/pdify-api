@@ -1,7 +1,8 @@
-import { CreatePlaylistRequest } from "#/@types/audio";
+import { CreatePlaylistRequest, UpdatePlaylistRequest } from "#/@types/audio";
 import Audio from "#/models/audio";
 import Playlist from "#/models/playlist";
 import { RequestHandler } from "express";
+import { isValidObjectId } from "mongoose";
 
 export const createPlaylist: RequestHandler = async (
   req: CreatePlaylistRequest,
@@ -33,4 +34,75 @@ export const createPlaylist: RequestHandler = async (
       visibility: newPlaylist.visibility,
     },
   });
+};
+
+export const updatePlaylist: RequestHandler = async (
+  req: UpdatePlaylistRequest,
+  res
+): Promise<any> => {
+  const { title, id, item, visibility } = req.body;
+
+  const playlist = await Playlist.findOneAndUpdate(
+    { _id: id, owner: req.user.id },
+    { title, visibility },
+    { new: true }
+  );
+
+  if (!playlist)
+    return res.status(404).json({ message: "Playlist not found!" });
+
+  if (item) {
+    const audio = await Audio.findById(item);
+    if (!audio) return res.status(404).json({ message: "Audio not found!" });
+    // playlist.items.push(audio._id);
+    // await playlist.save();
+    await Playlist.findByIdAndUpdate(playlist._id, {
+      $addToSet: { items: item },
+    });
+  }
+  return res.status(200).json({
+    playlist: {
+      id: playlist._id,
+      title: playlist.title,
+      visibility: playlist.visibility,
+    },
+  });
+};
+
+export const removePlaylist: RequestHandler = async (
+  req,
+  res
+): Promise<any> => {
+  const { playlistId, resId, all } = req.query;
+
+  if (!isValidObjectId(playlistId))
+    return res.status(422).json({ message: "Invalid playlist id!" });
+
+  if (all === "yes") {
+    const playlist = await Playlist.findOneAndDelete({
+      _id: playlistId,
+      owner: req.user.id,
+    });
+
+    if (!playlist)
+      return res.status(404).json({ message: "Playlist not found!" });
+  }
+
+  if (resId) {
+    if (!isValidObjectId(resId))
+      return res.status(422).json({ message: "Invalid audio id!" });
+
+    const playlist = await Playlist.findOneAndUpdate(
+      {
+        _id: playlistId,
+        owner: req.user.id,
+      },
+      { $pull: { items: resId } }
+    );
+
+    if (!playlist)
+      return res.status(404).json({ message: "Playlist not found!" });
+  }
+
+  return res.status(200).json({ message: "success", success: true });
 };

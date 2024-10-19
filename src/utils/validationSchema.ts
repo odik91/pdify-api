@@ -80,3 +80,19 @@ export const NewPlaylistValidationSchema = yup.object().shape({
     .oneOf(["public", "private"], "Invalid visibility!")
     .required("Please select a visibility!"),
 });
+
+export const OldPlaylistValidationSchema = yup.object().shape({
+  title: yup.string().required("Please provide title!"),
+  // this is to validate the audio id
+  item: yup.string().transform(function (value) {
+    return this.isType(value) && isValidObjectId(value) ? value : "";
+  }),
+  // this is to validate the playlist id
+  id: yup.string().transform(function (value) {
+    return this.isType(value) && isValidObjectId(value) ? value : "";
+  }),
+  visibility: yup
+    .string()
+    .oneOf(["public", "private"], "Invalid visibility!")
+    .required("Please select a visibility!"),
+});
