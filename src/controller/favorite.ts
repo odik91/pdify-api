@@ -1,4 +1,4 @@
-import { PolulateFavList } from "#/@types/audio";
+import { PopulateFavList } from "#/@types/audio";
 import Audio, { AudioDocument } from "#/models/audio";
 import Favorite from "#/models/favorite";
 import { RequestHandler } from "express";
@@ -67,7 +67,7 @@ export const toggleFavorite: RequestHandler = async (
 export const getFavorites: RequestHandler = async (req, res): Promise<any> => {
   const userId = req.user.id;
   const favorite = await Favorite.findOne({ owner: userId }).populate<{
-    items: PolulateFavList[];
+    items: PopulateFavList[];
   }>({
     path: "items",
     populate: {

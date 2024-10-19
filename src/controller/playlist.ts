@@ -1,4 +1,8 @@
-import { CreatePlaylistRequest, UpdatePlaylistRequest } from "#/@types/audio";
+import {
+  CreatePlaylistRequest,
+  PopulateFavList,
+  UpdatePlaylistRequest,
+} from "#/@types/audio";
 import Audio from "#/models/audio";
 import Playlist from "#/models/playlist";
 import { RequestHandler } from "express";
@@ -134,4 +138,42 @@ export const getPlaylistByProfile: RequestHandler = async (
   });
 
   return res.status(200).json({ playlist });
+};
+
+export const getAudios: RequestHandler = async (req, res): Promise<any> => {
+  const { playlistId } = req.params;
+  if (!isValidObjectId(playlistId))
+    return res.status(422).json({ message: "Invalid playlist id!" });
+
+  const playlist = await Playlist.findOne({
+    owner: req.user.id,
+    _id: playlistId,
+  }).populate<{ items: PopulateFavList[] }>({
+    path: "items",
+    populate: {
+      path: "owner",
+      select: "name",
+    },
+  });
+
+  if (!playlist) return res.json({ list: [] });
+
+  const audios = playlist.items.map((item) => {
+    return {
+      id: item._id,
+      title: item.title,
+      category: item.category,
+      file: item.file.url,
+      poster: item.poster?.url,
+      owner: { name: item.owner.name, id: item.owner._id },
+    };
+  });
+
+  return res.status(200).json({
+    list: {
+      id: playlist._id,
+      title: playlist.title,
+      audios,
+    },
+  });
 };
