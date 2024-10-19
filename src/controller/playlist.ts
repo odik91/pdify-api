@@ -106,3 +106,25 @@ export const removePlaylist: RequestHandler = async (
 
   return res.status(200).json({ message: "success", success: true });
 };
+
+export const getPlaylistByProfile: RequestHandler = async (
+  req,
+  res
+): Promise<any> => {
+  const data = await Playlist.find({
+    owner: req.user.id,
+    visibility: { $ne: "auto" },
+  }).sort("-createdAt");
+
+  const playlist = data.map((item) => {
+    const { _id: id, title, items, visibility } = item;
+    return {
+      id,
+      title,
+      itemsCount: items.length,
+      visibility,
+    };
+  });
+
+  return res.status(200).json({ playlist });
+};

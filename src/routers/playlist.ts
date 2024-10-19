@@ -1,4 +1,4 @@
-import { createPlaylist, removePlaylist, updatePlaylist } from "#/controller/playlist";
+import { createPlaylist, getPlaylistByProfile, removePlaylist, updatePlaylist } from "#/controller/playlist";
 import { isVerified, mustAuth } from "#/middleware/auth";
 import { validate } from "#/middleware/validator";
 import { NewPlaylistValidationSchema, OldPlaylistValidationSchema } from "#/utils/validationSchema";
@@ -20,5 +20,6 @@ router.patch(
   updatePlaylist
 );
 router.delete("/", mustAuth, removePlaylist)
+router.get("/by-profile", mustAuth, getPlaylistByProfile)
 
 export default router;
