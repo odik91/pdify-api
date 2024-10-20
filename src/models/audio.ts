@@ -10,6 +10,7 @@ export interface AudioDocument<T = ObjectId> {
   poster?: { url: string; publicId: string };
   likes: ObjectId[];
   category: categoriesTypes;
+  createdAt: Date;
 }
 
 const AudioSchema = new Schema<AudioDocument>(
