@@ -1,10 +1,6 @@
 import { Model, model, models, ObjectId, Schema } from "mongoose";
 
-type HistoryType = {
-  audio: ObjectId;
-  progress: number;
-  date: Date;
-};
+export type HistoryType = { audio: ObjectId; progress: number; date: Date };
 
 interface HistoryDocument {
   owner: ObjectId;
@@ -12,7 +8,7 @@ interface HistoryDocument {
   all: HistoryType[];
 }
 
-const histroySchema = new Schema<HistoryDocument>(
+const historySchema = new Schema<HistoryDocument>(
   {
     owner: {
       type: Schema.Types.ObjectId,
@@ -35,6 +31,7 @@ const histroySchema = new Schema<HistoryDocument>(
           type: Schema.Types.ObjectId,
           ref: "Audio",
         },
+        progress: Number,
         date: {
           type: Date,
           required: true,
@@ -45,6 +42,6 @@ const histroySchema = new Schema<HistoryDocument>(
   { timestamps: true }
 );
 
-const History = models.History || model("History", histroySchema);
+const History = models.History || model("History", historySchema);
 
 export default History as Model<HistoryDocument>;
