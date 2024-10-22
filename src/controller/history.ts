@@ -74,3 +74,21 @@ export const updateHistory: RequestHandler = async (req, res): Promise<any> => {
 
   return res.status(200).json({ success: true });
 };
+
+export const removeHistory: RequestHandler = async (req, res): Promise<any> => {
+  const removeAll = req.query.all == "yes";
+
+  if (removeAll) {
+    await History.findOneAndDelete({ owner: req.user.id });
+    return res.json({ success: true });
+  }
+
+  const histories = req.query.histories as string;
+  const ids = JSON.parse(histories) as string[];
+  await History.findOneAndUpdate(
+    { owner: req.user.id },
+    { $pull: { all: { _id: ids } } }
+  );
+
+  return res.status(200).json({ message: "Success!", success: true });
+};
