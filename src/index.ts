@@ -7,6 +7,7 @@ import favoriteRouter from "./routers/favorite";
 import playlistRouter from "./routers/playlist";
 import profileRouter from "./routers/profile";
 import historyRouter from "./routers/history";
+import "./utils/schedule"
 
 const app = express();
 
