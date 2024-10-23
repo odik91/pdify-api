@@ -1,3 +1,4 @@
+import { PopulateFavList } from "#/@types/audio";
 import cloudinary from "#/cloud";
 import { RequestWithFiles } from "#/middleware/fileParser";
 import Audio from "#/models/audio";
@@ -127,4 +128,30 @@ export const updateAudio: RequestHandler = async (
     console.error("Error update audio:", error);
     return res.status(500).json({ error: "Failed to update audio" });
   }
+};
+
+export const getLatestUpload: RequestHandler = async (
+  req,
+  res
+): Promise<any> => {
+  const list = await Audio.find()
+    .sort("-createdAt")
+    .limit(10)
+    .populate<PopulateFavList>("owner");
+  const audios = list.map((item) => {
+    return {
+      id: item._id,
+      title: item.title,
+      about: item.about,
+      category: item.category,
+      file: item.file.url,
+      poster: item.poster?.url,
+      owner: {
+        name: item.owner.name,
+        id: item.owner._id,
+      },
+    };
+  });
+
+  return res.status(200).json({ audios });
 };
