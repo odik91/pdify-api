@@ -1,9 +1,11 @@
 import { PaginationQuery } from "#/@types/misc";
 import Audio, { AudioDocument } from "#/models/audio";
+import History from "#/models/history";
 import Playlist from "#/models/playlist";
 import User from "#/models/user";
 import { RequestHandler } from "express";
-import { isValidObjectId, ObjectId } from "mongoose";
+import moment from "moment";
+import { isValidObjectId, ObjectId, PipelineStage } from "mongoose";
 
 export const updateFollower: RequestHandler = async (
   req,
@@ -169,4 +171,84 @@ export const getPublicPlaylist: RequestHandler = async (
       };
     }),
   });
+};
+
+export const getRecommendedByProfile: RequestHandler = async (
+  req,
+  res
+): Promise<any> => {
+  const user = req.user;
+
+  let matchOptions: PipelineStage.Match = {
+    $match: { _id: { $exists: true } },
+  };
+
+  if (user) {
+    // then we want to send by the profile
+    const usersProviousHistory = await History.aggregate([
+      { $match: { owner: user.id } },
+      { $unwind: "$all" },
+      {
+        $match: {
+          "all.date": {
+            // only take history not longer than 30days
+            $gte: moment().subtract(20, "days").toDate(),
+          },
+        },
+      },
+      { $group: { _id: "$all.audio" } },
+      {
+        $lookup: {
+          from: "audios",
+          localField: "_id",
+          foreignField: "_id",
+          as: "audioData",
+        },
+      },
+      { $unwind: "$audioData" },
+      { $group: { _id: null, category: { $addToSet: "$audioData.category" } } },
+    ]);
+
+    const categories = usersProviousHistory[0]?.category;
+    if (categories.length) {
+      matchOptions = {
+        $match: { category: { $in: usersProviousHistory[0].category } },
+      };
+    }
+  }
+
+  // if user not login send the generic audios
+  const audios = await Audio.aggregate([
+    matchOptions,
+    {
+      $sort: { "likes.count": -1 },
+    },
+    { $limit: 10 },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    { $unwind: "$owner" },
+    {
+      $project: {
+        _id: 0,
+        id: "$_id",
+        title: "$title",
+        category: "$category",
+        about: "$about",
+        file: "$file.url",
+        poster: "$poster.url",
+        owner: {
+          name: "$owner.name",
+          id: "$owner._id",
+        },
+      },
+    },
+  ]);
+
+  return res.status(200).json({ audios });
 };
