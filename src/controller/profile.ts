@@ -339,3 +339,51 @@ export const getFollowerProfile: RequestHandler = async (
 
   res.status(200).json({ followers: result.followers });
 };
+
+export const geFollowingProfile: RequestHandler = async (
+  req,
+  res
+): Promise<any> => {
+  const { limit = "10", pageNo = "0" } = req.query as PaginationQuery;
+
+  const [result] = await User.aggregate([
+    { $match: { _id: req.user.id } },
+    {
+      $project: {
+        following: {
+          $slice: [
+            "$following",
+            parseInt(pageNo) * parseInt(limit),
+            parseInt(limit),
+          ],
+        },
+      },
+    },
+    { $unwind: "$following" },
+    {
+      $lookup: {
+        from: "users",
+        localField: "following",
+        foreignField: "_id",
+        as: "userInfo",
+      },
+    },
+    { $unwind: "$userInfo" },
+    {
+      $group: {
+        _id: null,
+        followings: {
+          $push: {
+            id: "$userInfo._id",
+            name: "$userInfo.name",
+            avatar: "$userInfo.avatar.url",
+          },
+        },
+      },
+    },
+  ]);
+
+  if (!result) return res.status(200).json({ following: [] });
+
+  res.status(200).json({ followings: result.followings });
+};
