@@ -7,7 +7,7 @@ import User from "#/models/user";
 import { getUserPreviousHistory } from "#/utils/helper";
 import { RequestHandler } from "express";
 import moment from "moment";
-import { isValidObjectId, ObjectId, PipelineStage } from "mongoose";
+import { isValidObjectId, ObjectId, PipelineStage, Types } from "mongoose";
 
 export const updateFollower: RequestHandler = async (
   req,
@@ -300,6 +300,58 @@ export const getFollowerProfile: RequestHandler = async (
 
   const [result] = await User.aggregate([
     { $match: { _id: req.user.id } },
+    {
+      $project: {
+        followers: {
+          $slice: [
+            "$followers",
+            parseInt(pageNo) * parseInt(limit),
+            parseInt(limit),
+          ],
+        },
+      },
+    },
+    { $unwind: "$followers" },
+    {
+      $lookup: {
+        from: "users",
+        localField: "followers",
+        foreignField: "_id",
+        as: "userInfo",
+      },
+    },
+    { $unwind: "$userInfo" },
+    {
+      $group: {
+        _id: null,
+        followers: {
+          $push: {
+            id: "$userInfo._id",
+            name: "$userInfo.name",
+            avatar: "$userInfo.avatar.url",
+          },
+        },
+      },
+    },
+  ]);
+
+  if (!result) return res.status(200).json({ followers: [] });
+
+  res.status(200).json({ followers: result.followers });
+};
+
+export const getFollowerProfilePublic: RequestHandler = async (
+  req,
+  res
+): Promise<any> => {
+  const { limit = "10", pageNo = "0" } = req.query as PaginationQuery;
+  const { profileId } = req.params;
+
+  if (!isValidObjectId(profileId))
+    return res.status(422).json({ message: "Invalid profile id!" });
+
+  const [result] = await User.aggregate([
+    { $match: { _id: new Types.ObjectId(profileId) } },
     {
       $project: {
         followers: {
