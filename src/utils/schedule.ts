@@ -11,13 +11,13 @@ import cron from "node-cron";
 const generatedPlaylist = async (): Promise<any> => {
   const result = await Audio.aggregate([
     { $sort: { likes: -1 } },
+    { $sample: { size: 1 } },
     {
       $group: {
         _id: "$category",
         audios: { $push: "$$ROOT._id" },
       },
     },
-    { $limit: 20 },
   ]);
 
   result.map(async (item) => {
@@ -27,7 +27,6 @@ const generatedPlaylist = async (): Promise<any> => {
       { upsert: true }
     );
   });
-  console.log(result);
 };
 
 cron.schedule("0 0 * * *", async () => {
