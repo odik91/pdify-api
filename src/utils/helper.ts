@@ -26,7 +26,9 @@ export const formatProfile = (user: UserDocument) => {
   };
 };
 
-export const getUserPreviousHistory = async (req: Request) => {
+export const getUserPreviousHistory = async (
+  req: Request
+): Promise<string[]> => {
   const [result] = await History.aggregate([
     { $match: { owner: req.user.id } },
     { $unwind: "$all" },
@@ -51,5 +53,9 @@ export const getUserPreviousHistory = async (req: Request) => {
     { $group: { _id: null, category: { $addToSet: "$audioData.category" } } },
   ]);
 
-  return result;
+  if (result) {
+    return result.category;
+  }
+
+  return [];
 };
