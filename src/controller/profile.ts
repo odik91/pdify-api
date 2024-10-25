@@ -6,7 +6,6 @@ import Playlist from "#/models/playlist";
 import User from "#/models/user";
 import { getUserPreviousHistory } from "#/utils/helper";
 import { RequestHandler } from "express";
-import moment from "moment";
 import { isValidObjectId, ObjectId, PipelineStage, Types } from "mongoose";
 
 export const updateFollower: RequestHandler = async (
@@ -616,4 +615,17 @@ export const getPrivatePlaylistAudios: RequestHandler = async (
   }
 
   return res.json({ list: playlistResult });
+};
+
+export const getIsFollowing: RequestHandler = async (
+  req,
+  res
+): Promise<any> => {
+  const { profileId } = req.params;
+  if (!isValidObjectId(profileId))
+    return res.status(422).json({ message: "Invalid profile id!" });
+
+  const user = await User.findOne({ _id: profileId, followers: req.user.id });
+
+  return res.status(200).json({ status: user ? true : false });
 };
