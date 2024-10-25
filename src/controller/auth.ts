@@ -35,7 +35,13 @@ export const create: RequestHandler = async (
   res
 ): Promise<any | unknown> => {
   const { email, password, name } = req.body;
-  CreateUserSchema.validate({ email, password, name }).catch((error) => {});
+  CreateUserSchema.validate({ email, password, name }).catch((error) => {
+    return res.status(500).json({ error: error.message });
+  });
+
+  const oldUser = await User.findOne({ email });
+  if (oldUser)
+    return res.status(403).json({ message: "Email is already in use!" });
 
   try {
     const user = await User.create({ name, email, password });

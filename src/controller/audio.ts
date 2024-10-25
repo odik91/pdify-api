@@ -36,7 +36,7 @@ export const createAudio: RequestHandler = async (
       about,
       category,
       owner: ownerId,
-      file: { url: audioResponse.url, publicId: audioResponse.public_id },
+      file: { url: audioResponse.secure_url, publicId: audioResponse.public_id },
     });
 
     const uploadPoster = poster ? poster[0] : null;
